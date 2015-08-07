@@ -3,7 +3,6 @@ menu:
   首页: /
   tips: /tips
   归档: /archives
-  大事记: /milestone
   关于: /about
 ## you can create `tags` and `categories` folders in `../source`.
 ## And create a `index.md` file in each of them.
