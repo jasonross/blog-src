@@ -99,3 +99,4 @@ google_cse:
 ## ---
 highlight:
   enable: true
+  line_number: false #是否显示行号
