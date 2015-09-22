@@ -3,6 +3,8 @@ date: 2015-08-07 16:58:59
 tags: [Android Studio,Gradle,Android,Groovy]
 ---
 
+**本文为CSDN约稿文章，首发地址为：[Android项目中如何用好构建神器Gradle?](http://www.csdn.net/article/2015-08-10/2825420)。如需转载，请与CSDN联系。原文错误，会在本站更新。**
+
 最近在忙团队并行开发的事情，主要是将各个团队的代码分库，一方面可以降低耦合，为后面模块插件化做铺垫，另一方面采用二进制编译，可以加快编译速度。分库遇到了一些问题，很多都要通过Gradle脚本解决，所以稍微花时间研究了一下。
 
 Gradle虽为构建神器，但感觉学习曲线比较陡峭。[Gradle User Guide](https://docs.gradle.org/current/userguide/userguide.html)内容很多，但有点太多了，多的你看不完，[Gradle Plugin User Guide](http://tools.android.com/tech-docs/new-build-system/user-guide)一篇文章主要讲了Android相关的配置，看完可能感觉马马虎虎会用，但到了修改一些构建流程的时候还是不知所措。经过一段时间的摸索，我觉得在Android项目中用好Gradle，你要做到以下三点：
@@ -137,23 +139,24 @@ compile 'com.somepackage:LIBRARY_NAME:1.0.0@aar'
 >[美团Android自动化之旅—适配渠道包](http://tech.meituan.com/mt-apk-adaptation.html)
 
 ### buildTypes
-很多App有内测版和正式版，怎么让他们同时安装在一个手机上？同时安装在一个手机上，要求packageName不同的，用productFlavors可以解决，但可能不够优雅，alpha版本还要来个debug和release版本岂不是很蛋疼？可以用buildTypes来解决，淘宝资深架构师朱鸿的[文章](http://hugozhu.myalert.info/2014/08/03/50-use-gradle-to-customize-apk-build.html)有比较详细的讲解，但有些内容可能有些过时了，需要更改脚本。
+很多App有内测版和正式版，怎么让他们同时安装在一个手机上？同时安装在一个手机上，要求packageName不同的，用productFlavors可以解决，但可能不够优雅，alpha版本还要来个debug和release版本岂不是很蛋疼？可以用buildTypes来解决，淘宝朱鸿的[文章](http://hugozhu.myalert.info/2014/08/03/50-use-gradle-to-customize-apk-build.html)有比较详细的讲解，但有些内容可能有些过时了，需要更改脚本。
 
 ### 依赖更新
 项目依赖的远程包如果有更新，会有提醒或者自动更新吗？
-不会的，需要你手动设置changing标记为true，这样gradle会每24小时检查更新，通过更改resolutionStrategy可以修改检查周期。
+
+SNAPSHOT(changing)和+号(dynamic)版本默认24小时自动更新，通过更改resolutionStrategy可以修改检查周期。
 
 ```
 configurations.all {
     // check for updates every build
+    resolutionStrategy.cacheDynamicVersionsFor 0, 'seconds'
     resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
 }
 dependencies {
-    compile group: "group", name: "projectA", version: "1.1-SNAPSHOT", changing: true
+	compile 'com.dianping.nova.business:search:1.0.+'
+	compile 'com.dianping.nova.business:selectdish:1.0.6-SNAPSHOT'
 }
 ```
-
-之前上传aar同一版本到maven仓库，但依赖却没有更新，该怎么办呢?可以直接删除本地缓存，缓存在`~/.gradle/caches`目录下，删除缓存后，下次运行就会自动重新下载远程依赖了。
 
 ### 上传aar到Maven仓库
 在工程的build.gradle中添加如下脚本：
@@ -329,19 +332,17 @@ buildscript {
 >file:/Applications/Android%20Studio.app/Contents/gradle/m2repository/
 >https://jcenter.bintray.com/
 
-我靠，仓库竟然直接在Android Studio应用内部，所以说你去掉buildscript的jcenter()完全没有关系啊，下面还有更爽的，我们知道有依赖传递，上面classpath 中的`gradle`依赖`gradle-core`，`gradle-core`依赖`lint`，`lint`依赖`lint-checks`，`lint-checks`最后依赖到了`asm`，并且这个根目录中的依赖配置会传到所有工程的配置文件，所以如果你要引用asm相关的类，不用设置classpath，直接import就可以了。你怎么知道前面的依赖关系的？看上面m2repository目录中对应的pom文件就可以了。
+我靠，仓库竟然直接在Android Studio应用内部，下面还有更爽的，我们知道有依赖传递，上面classpath 中的`gradle`依赖`gradle-core`，`gradle-core`依赖`lint`，`lint`依赖`lint-checks`，`lint-checks`最后依赖到了`asm`，并且这个根目录中的依赖配置会传到所有工程的配置文件，所以如果你要引用asm相关的类，不用设置classpath，直接import就可以了。你怎么知道前面的依赖关系的？看上面m2repository目录中对应的pom文件就可以了。
 
 为什么讲到ASM呢？[ASM](http://asm.ow2.org/)又是个比较刁的东西，可以直接用来操纵Java字节码，达到动态更改class文件的效果。可以用ASM[面向切面编程](http://developer.51cto.com/art/201309/410861_all.htm)，达到解耦效果。[Android DEX自动拆包及动态加载简介](http://tech.meituan.com/mt-android-auto-split-dex.html)中提到的class依赖分析和R常量替换的脚本都可以用ASM来搞。
 
 ### 引入脚本
-脚本写多了，都挤在一个build.gradle里也不好，人长大了总要自己出去住，那可以把部分脚本抽出去吗？当然可以，新建一个other.gradle把脚本抽离，然后在build.gradle中添加`apply from 'other.gradle'`即可，抽出去以后你会发现本来可以直接import的asm包找不到了，怎么回事？根工程中配置的buildscript会传递到所有工程，但只会传到build.gradle脚本中，其他脚本可不管，所以你要在other.gradle中重新配置buildscript，并且other.gradle中的repositories不再包含m2repository目录，自己配置jcenter()又会导致依赖重新下载到`~/.gradle/caches`目录。如果不想额外下载，也可以在other.gradle中这么搞：
+脚本写多了，都挤在一个build.gradle里也不好，人长大了总要自己出去住，那可以把部分脚本抽出去吗？当然可以，新建一个other.gradle把脚本抽离，然后在build.gradle中添加`apply from 'other.gradle'`即可，抽出去以后你会发现本来可以直接import的asm包找不到了，怎么回事？根工程中配置的buildscript会传递到所有工程，但只会传到build.gradle脚本中，其他脚本可不管，所以你要在other.gradle中重新配置buildscript，可以在other.gradle中加入：
 
 ```
 buildscript {
     repositories {
-        maven {
-            url rootProject.buildscript.repositories[0].getUrl()
-        }
+       jcenter()
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:1.2.3'
