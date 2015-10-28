@@ -69,7 +69,9 @@ theme: pacman
 ## Docs: http://hexo.io/docs/deployment.html
 deploy:
   type: git
-  repository: git@gitcafe.com:jasonross/jasonross.git
-  branch: gitcafe-pages
+  repo: 
+    github: git@github.com:jasonross/jasonross.github.io.git,master
+    gitcafe: git@gitcafe.com:jasonross/jasonross.git,gitcafe-pages
+
 plugins:
 - hexo-generator-feed
