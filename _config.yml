@@ -71,7 +71,6 @@ deploy:
   type: git
   repo: 
     github: git@github.com:jasonross/jasonross.github.io.git,master
-    gitcafe: git@gitcafe.com:jasonross/jasonross.git,gitcafe-pages
 
 plugins:
 - hexo-generator-feed
