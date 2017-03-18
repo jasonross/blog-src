@@ -1,5 +1,5 @@
 title: 编写多类型列表视图，哪家强？
-date: 2015-10-11 23:25:55
+date: 2016-10-12 23:25:55
 tags: [Android,ListView,RecyclerView,Adapter,MultiType,Epoxy]
 ---
 
